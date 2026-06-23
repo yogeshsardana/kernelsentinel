@@ -19,6 +19,14 @@ Modern Linux systems rely on IMA/EVM for file integrity measurement, but these m
 - **Container-Native** — Per-workload TPM2 virtual PCR segments for Kubernetes environments
 - **Adversarial Test Harness** — Ships with 23 documented kernel exploitation patterns for reproducible benchmarking
 
+## Author & Maintainer
+
+**Yogesh Sardana** — Author, maintainer, and primary developer
+- Email: [yogesh.sardana1@gmail.com](mailto:yogesh.sardana1@gmail.com)
+- GitHub: [@yogesh-sardana](https://github.com/yogesh-sardana)
+
+For questions, contributions, or security disclosures, please reach out via email or open a GitHub issue.
+
 ## Architecture
 
 ```
