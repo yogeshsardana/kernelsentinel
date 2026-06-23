@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Yogesh Sardana <yogesh.sardana1@gmail.com>
+// Author: Yogesh Sardana
+
 package ks
 
 import (

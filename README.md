@@ -2,6 +2,8 @@
 
 **eBPF-Driven Runtime Integrity Enforcement with Cryptographic Policy Anchoring**
 
+Copyright (C) 2026 **Yogesh Sardana** <yogesh.sardana1@gmail.com>
+
 KernelSentinel is a first-of-its-kind framework combining eBPF LSM hooks with hardware-backed cryptographic policy anchors (TPM2 PCR attestation + DICE chaining) to enforce behavioral integrity at runtime on Linux 6.8+ kernels.
 
 ## Overview
@@ -84,3 +86,10 @@ Three upstream-targetable patches for the Linux kernel:
 ## License
 
 GNU General Public License v3.0
+
+Copyright (C) 2026 Yogesh Sardana <yogesh.sardana1@gmail.com>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.

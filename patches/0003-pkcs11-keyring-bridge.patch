@@ -1,4 +1,4 @@
-From: KernelSentinel Team <dev@kernelsentinel.io>
+From: Yogesh Sardana <yogesh.sardana1@gmail.com>
 Date: Mon, 1 Jun 2026 10:02:00 +0000
 Subject: [PATCH 3/3] IMA: Add PKCS#11 keyring bridge for HSM-resident signing keys
 
@@ -14,7 +14,7 @@ The bridge provides:
 - No key material export from the HSM
 - Full audit trail for all signing operations
 
-Signed-off-by: KernelSentinel Team <dev@kernelsentinel.io>
+Signed-off-by: Yogesh Sardana <yogesh.sardana1@gmail.com>
 ---
  security/integrity/ima/Kconfig      |  12 +++
  security/integrity/ima/Makefile     |   1 +

@@ -1,4 +1,4 @@
-From: KernelSentinel Team <dev@kernelsentinel.io>
+From: Yogesh Sardana <yogesh.sardana1@gmail.com>
 Date: Mon, 1 Jun 2026 10:01:00 +0000
 Subject: [PATCH 2/3] LSM: Introduce lsm_bpf_behavioral_commit() hook for atomic policy evaluation
 
@@ -15,7 +15,7 @@ The hook is called during critical policy transitions and provides:
 - Integration with TPM2 PCR chaining for attestation
 - N-of-M HSM quorum verification at the LSM layer
 
-Signed-off-by: KernelSentinel Team <dev@kernelsentinel.io>
+Signed-off-by: Yogesh Sardana <yogesh.sardana1@gmail.com>
 ---
  include/linux/lsm_hook_defs.h |  2 ++
  include/linux/lsm_hooks.h     | 14 ++++++++++
