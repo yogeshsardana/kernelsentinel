@@ -1,0 +1,47 @@
+# KernelSentinel policy: Container Workload Isolation
+# Designed for CNCF Kubernetes environments with vTPM
+---
+policy:
+  name: "container-workload-policy"
+  version: 1
+  scope: container
+  match:
+    container_label: "security.kernelsentinel.io/integrity-level=high"
+
+  attestation:
+    pcr_index: 16
+    vTPM: true
+    quorum_required: 2
+    quorum_total: 3
+
+  rules:
+    - event: socket_connect
+      action: allow
+      process_path: "/usr/bin/curl"
+      restrict_dns: "*.internal.svc.cluster.local"
+
+    - event: socket_connect
+      action: deny
+      process_path: "*"
+
+    - event: execve
+      action: allow
+      process_path: "/usr/local/bin/*"
+      uid: "1000"
+
+    - event: execve
+      action: deny
+      process_path: "*"
+
+    - event: mmap
+      action: deny
+      flags_mask: 0x1  # W+X forbidden
+
+    - event: file_open
+      action: allow
+      process_path: "/app/*"
+      flags_mask: 0x1
+
+    - event: file_open
+      action: deny
+      process_path: "/etc/shadow"

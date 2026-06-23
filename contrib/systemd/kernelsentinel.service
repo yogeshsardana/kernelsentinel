@@ -1,0 +1,25 @@
+[Unit]
+Description=KernelSentinel - eBPF-Driven Runtime Integrity Enforcement
+Documentation=https://github.com/kernelsentinel/kernelsentinel
+After=network.target tpm2-abrmd.service
+Wants=tpm2-abrmd.service
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/bpftool prog load /usr/lib/kernelsentinel/ks_behavior_tracker.bpf.o /sys/fs/bpf/ks_behavior_tracker
+ExecStartPre=/usr/bin/bpftool prog load /usr/lib/kernelsentinel/ks_integrity_enforcer.bpf.o /sys/fs/bpf/ks_integrity_enforcer
+ExecStartPre=/usr/bin/bpftool prog load /usr/lib/kernelsentinel/ks_process_monitor.bpf.o /sys/fs/bpf/ks_process_monitor
+ExecStartPre=/usr/bin/bpftool prog load /usr/lib/kernelsentinel/ks_policy_eval.bpf.o /sys/fs/bpf/ks_policy_eval
+ExecStartPre=/usr/bin/bpftool prog attach /sys/fs/bpf/ks_behavior_tracker lsm
+ExecStartPre=/usr/bin/bpftool prog attach /sys/fs/bpf/ks_integrity_enforcer lsm
+ExecStart=/usr/bin/ksd /etc/kernelsentinel/config.yaml
+ExecStopPost=/usr/bin/bpftool prog detach /sys/fs/bpf/ks_behavior_tracker lsm || true
+ExecStopPost=/usr/bin/bpftool prog detach /sys/fs/bpf/ks_integrity_enforcer lsm || true
+ExecStopPost=/usr/bin/rm -f /sys/fs/bpf/ks_*
+Restart=on-failure
+RestartSec=10
+AmbientCapabilities=CAP_BPF CAP_NET_ADMIN CAP_DAC_OVERRIDE
+ReadWritePaths=/sys/fs/bpf /var/log/kernelsentinel.log
+
+[Install]
+WantedBy=multi-user.target

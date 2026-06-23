@@ -1,0 +1,87 @@
+From: KernelSentinel Team <dev@kernelsentinel.io>
+Date: Mon, 1 Jun 2026 10:01:00 +0000
+Subject: [PATCH 2/3] LSM: Introduce lsm_bpf_behavioral_commit() hook for atomic policy evaluation
+
+This patch introduces a new LSM hook lsm_bpf_behavioral_commit() that
+enables atomic policy evaluation with rollback semantics. This allows
+eBPF LSM programs to evaluate a behavioral policy decision, commit it
+atomically, or roll back to a previous known-good state if the evaluation
+fails. This is the foundational mechanism for KernelSentinel's trusted
+policy update protocol.
+
+The hook is called during critical policy transitions and provides:
+- Atomic commit of new behavioral policy state
+- Automatic rollback to previous state on failure
+- Integration with TPM2 PCR chaining for attestation
+- N-of-M HSM quorum verification at the LSM layer
+
+Signed-off-by: KernelSentinel Team <dev@kernelsentinel.io>
+---
+ include/linux/lsm_hook_defs.h |  2 ++
+ include/linux/lsm_hooks.h     | 14 ++++++++++
+ security/security.c           | 12 +++++++++
+ 3 files changed, 28 insertions(+)
+
+diff --git a/include/linux/lsm_hook_defs.h b/include/linux/lsm_hook_defs.h
+index 1234567..abcdef0 100644
+--- a/include/linux/lsm_hook_defs.h
++++ b/include/linux/lsm_hook_defs.h
+@@ -42,6 +42,8 @@ LSM_HOOK(int, 0, bpf, int, cmd, union bpf_attr *, attr, unsigned int, size)
+ LSM_HOOK(int, 0, bpf_prog_load, struct bpf_prog *, prog, union bpf_attr *, attr)
+ LSM_HOOK(int, 0, bpf_prog, struct bpf_prog *, prog, struct bpf_prog_info *, info)
+ LSM_HOOK(int, 0, bpf_map, struct bpf_map *, map, struct bpf_prog_info *, info)
++LSM_HOOK(int, 0, bpf_behavioral_commit, struct integrity_state *, new_state, struct integrity_state *, old_state)
++LSM_HOOK(int, 0, bpf_behavioral_rollback, struct integrity_state *, previous_state)
+ #endif /* CONFIG_BPF_SYSCALL */
+ 
+ LSM_HOOK(int, 0, locked_down, enum lockdown_reason, what)
+diff --git a/include/linux/lsm_hooks.h b/include/linux/lsm_hooks.h
+index 1234567..abcdef0 100644
+--- a/include/linux/lsm_hooks.h
++++ b/include/linux/lsm_hooks.h
+@@ -1630,6 +1630,20 @@
+  * @bpf_map: LSM hook to check if a BPF map operation should be allowed
+  * @bpf_prog: LSM hook to check if a BPF program operation should be allowed
+  *
++ * @bpf_behavioral_commit:
++ *	Check whether a behavioral policy state transition should be committed.
++ *	@new_state contains the proposed new integrity state including PCR hash,
++ *	policy version, and quorum attestation.
++ *	@old_state contains the current active state for rollback reference.
++ *	Return 0 to approve the commit, -EPERM to reject.
++ *
++ * @bpf_behavioral_rollback:
++ *	Perform a rollback to a previous integrity state. This is called when
++ *	a policy commit fails or when the TPM2 attestation chain cannot be
++ *	validated. The @previous_state parameter contains the state to restore.
++ *	Return 0 on successful rollback, -EINVAL if the rollback target is
++ *	invalid.
++ *
+  * @locked_down: Check whether the kernel should be locked down to
+  * 	specific features (such as loading unsigned modules).
+  *
+diff --git a/security/security.c b/security/security.c
+index 1234567..abcdef0 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -5270,6 +5270,18 @@ int security_bpf_prog(struct bpf_prog *prog, struct bpf_prog_info *info)
+ }
+ EXPORT_SYMBOL(security_bpf_prog);
+ 
++int security_bpf_behavioral_commit(struct integrity_state *new_state,
++				    struct integrity_state *old_state)
++{
++	return call_int_hook(bpf_behavioral_commit, 0, new_state, old_state);
++}
++
++int security_bpf_behavioral_rollback(struct integrity_state *previous_state)
++{
++	return call_int_hook(bpf_behavioral_rollback, 0, previous_state);
++}
++EXPORT_SYMBOL(security_bpf_behavioral_rollback);
++
+ #endif /* CONFIG_BPF_SYSCALL */
+ 
+ int security_locked_down(enum lockdown_reason what)
+-- 
+2.34.1

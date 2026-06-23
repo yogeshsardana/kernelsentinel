@@ -1,0 +1,42 @@
+# KernelSentinel policy: IoT Constrained Profile
+# For embedded devices with >= 64 MB RAM, TPM2.0 or OP-TEE
+---
+policy:
+  name: "iot-constrained-policy"
+  version: 1
+  scope: system
+  profile: nano
+  target:
+    ram_min_mb: 64
+    secure_enclave: "TPM2.0|OP-TEE"
+
+  attestation:
+    pcr_index: 15
+    quorum_required: 1
+    quorum_total: 1
+
+  rules:
+    - event: execve
+      action: allow
+      process_path: "/usr/bin/*"
+    - event: execve
+      action: allow
+      process_path: "/bin/*"
+    - event: execve
+      action: deny
+      process_path: "/tmp/*"
+    - event: socket_connect
+      action: allow
+      process_path: "/usr/bin/*"
+    - event: socket_connect
+      action: deny
+      process_path: "/tmp/*"
+    - event: mmap
+      action: allow
+      process_path: "*"
+    - event: mmap
+      action: deny
+      flags_mask: 0x1  # W+X
+    - event: file_open
+      action: allow
+      process_path: "*"

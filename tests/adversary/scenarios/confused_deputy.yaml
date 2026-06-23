@@ -1,0 +1,25 @@
+# Confused Deputy Attack Scenario
+# Low-privilege process tricks a privileged helper
+---
+scenario:
+  id: "CD-001"
+  name: "Confused Deputy via /tmp"
+  severity: 7
+  description: >
+    A low-privilege process writes a malicious configuration to /tmp and
+    then triggers a privileged helper binary that reads from /tmp,
+    executing the attacker's payload with elevated privileges.
+  mitigation: >
+    KernelSentinel's behavioral baseline detects the anomalous execution
+    chain: process A (low-priv) writes to /tmp, process B (high-priv)
+    executes from /tmp. The cross-process execution graph triggers a
+    policy violation.
+  events:
+    - event_type: file_open
+      process_path: "/usr/sbin/helper"
+      target_path: "/tmp/evil.conf"
+      expected_action: deny
+    - event_type: task_alloc
+      parent_pid_pattern: "low_priv"
+      child_pid_pattern: "helper"
+      expected_action: log

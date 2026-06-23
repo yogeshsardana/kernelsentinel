@@ -1,0 +1,48 @@
+name: Release Build
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    strategy:
+      matrix:
+        arch: [x86_64, aarch64]
+
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up cross-compiler
+        if: matrix.arch == 'aarch64'
+        run: sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build for ${{ matrix.arch }}
+        run: |
+          if [ "${{ matrix.arch }}" = "aarch64" ]; then
+            make CC=aarch64-linux-gnu-gcc
+          else
+            make
+          fi
+
+      - name: Package
+        run: |
+          mkdir -p dist/kernelsentinel-${{ matrix.arch }}
+          cp build/ksd build/ksctl build/ks-adversary build/ks-benchmark \
+             dist/kernelsentinel-${{ matrix.arch }}/
+          cp policies/default_policy.yaml dist/kernelsentinel-${{ matrix.arch }}/
+          cp -r contrib dist/kernelsentinel-${{ matrix.arch }}/
+          cp README.md LICENSE dist/kernelsentinel-${{ matrix.arch }}/
+          cd dist
+          tar czf kernelsentinel-${{ matrix.arch }}.tar.gz kernelsentinel-${{ matrix.arch }}/
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: dist/kernelsentinel-${{ matrix.arch }}.tar.gz
+          asset_name: kernelsentinel-${{ matrix.arch }}.tar.gz
+          asset_content_type: application/gzip

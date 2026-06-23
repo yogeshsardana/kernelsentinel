@@ -1,0 +1,22 @@
+# TOCTOU Attack Scenario
+# Time-of-check-time-of-use via symlink swap
+---
+scenario:
+  id: "TOCTOU-001"
+  name: "Symlink Swap TOCTOU"
+  severity: 9
+  description: >
+    Attacker swaps a regular file with a symlink to /etc/shadow between
+    the IMA measurement check and the file open operation, bypassing
+    integrity verification.
+  mitigation: >
+    KernelSentinel detects this via execution graph measurement: the
+    inode observed during bprm_check_security does not match the inode
+    at file_open for the same process.
+  events:
+    - event_type: file_open
+      process_path: "/tmp/exploit"
+      expected_action: deny
+    - event_type: execve
+      process_path: "/tmp/exploit"
+      expected_action: deny

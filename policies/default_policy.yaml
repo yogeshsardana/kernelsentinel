@@ -1,0 +1,117 @@
+# KernelSentinel Default Policy
+# eBPF-Driven Runtime Integrity Enforcement
+---
+policy:
+  name: "default-system-policy"
+  version: 1
+  scope: system
+  description: "Default behavioral integrity policy for Linux systems"
+
+  attestation:
+    pcr_index: 15
+    quorum_required: 2
+    quorum_total: 3
+
+  rules:
+    # Allow normal file operations
+    - event: file_open
+      action: allow
+      process_path: "/usr/bin/*"
+      uid: "*"
+      gid: "*"
+
+    - event: file_open
+      action: allow
+      process_path: "/usr/lib/*"
+      uid: "*"
+
+    # Log unknown file opens for baselining
+    - event: file_open
+      action: log
+      process_path: "*"
+
+    # Deny unauthorized execution
+    - event: execve
+      action: allow
+      process_path: "/usr/bin/*"
+      flags_mask: 0x0
+
+    - event: execve
+      action: allow
+      process_path: "/bin/*"
+
+    - event: execve
+      action: allow
+      process_path: "/sbin/*"
+
+    - event: execve
+      action: deny
+      process_path: "/tmp/*"
+
+    - event: execve
+      action: log
+      process_path: "*"
+
+    # Network access control
+    - event: socket_connect
+      action: allow
+      process_path: "/usr/bin/curl"
+      uid: "0"
+
+    - event: socket_connect
+      action: allow
+      process_path: "/usr/bin/wget"
+      uid: "0"
+
+    - event: socket_connect
+      action: allow
+      process_path: "/usr/bin/ssh"
+
+    - event: socket_connect
+      action: deny
+      process_path: "/tmp/*"
+
+    - event: socket_connect
+      action: log
+      process_path: "*"
+
+    # Socket bind restrictions
+    - event: socket_bind
+      action: allow
+      process_path: "/usr/sbin/*"
+      uid: "0"
+
+    - event: socket_bind
+      action: deny
+      uid: "0"
+      process_path: "/tmp/*"
+
+    - event: socket_bind
+      action: log
+      process_path: "*"
+
+    # Memory protection
+    - event: mmap
+      action: allow
+      process_path: "*"
+      flags_mask: 0x2  # MAP_ANONYMOUS
+
+    - event: mmap
+      action: deny
+      process_path: "/tmp/*"
+      flags_mask: 0x0
+
+    # Process creation
+    - event: task_alloc
+      action: allow
+      process_path: "*"
+
+    - event: task_alloc
+      action: deny
+      process_path: "/tmp/*"
+
+    # eBPF program loading - restricted to root daemon
+    - event: bpf_prog_load
+      action: deny
+      process_path: "*"
+      uid: "0"

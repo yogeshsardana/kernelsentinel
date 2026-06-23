@@ -1,0 +1,40 @@
+# KernelSentinel policy: Web Server Hardening
+---
+policy:
+  name: "web-server-policy"
+  version: 1
+  scope: process
+  match:
+    process_path: "/usr/sbin/nginx"
+    or:
+      - process_path: "/usr/sbin/apache2"
+      - process_path: "/usr/sbin/httpd"
+
+  attestation:
+    pcr_index: 15
+    quorum_required: 1
+    quorum_total: 1
+
+  rules:
+    - event: socket_bind
+      action: allow
+      port: 80
+    - event: socket_bind
+      action: allow
+      port: 443
+
+    - event: socket_connect
+      action: deny
+      process_path: "*"
+
+    - event: execve
+      action: deny
+      process_path: "*"
+
+    - event: mmap
+      action: allow
+      flags_mask: 0x2  # RW
+
+    - event: mmap
+      action: deny
+      flags_mask: 0x1  # W+X

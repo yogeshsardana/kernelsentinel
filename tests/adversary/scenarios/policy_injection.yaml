@@ -1,0 +1,23 @@
+# Policy Injection Attack Scenario
+# Attacker loads a rogue eBPF program to modify policy
+---
+scenario:
+  id: "PI-001"
+  name: "Rogue eBPF Program Load"
+  severity: 10
+  description: >
+    An attacker with CAP_BPF loads a malicious eBPF program that
+    modifies the kernel's integrity policy map, disabling enforcement
+    for attacker-controlled processes.
+  mitigation: >
+    KernelSentinel hooks bpf_prog_load via LSM and verifies that the
+    loaded program's intent matches the signed policy manifest. Any
+    eBPF program that attempts to write to ks_* maps without a valid
+    HSM quorum signature is rejected.
+  events:
+    - event_type: bpf_prog_load
+      process_path: "/tmp/exploit"
+      expected_action: deny
+    - event_type: bpf_prog_load
+      process_path: "/usr/sbin/ksd"
+      expected_action: allow
