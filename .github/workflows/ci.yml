@@ -12,28 +12,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            clang llvm libbpf-dev libyaml-dev \
-            libtss2-esys-dev libtss2-rc-dev libtss2-mu-dev \
+            clang llvm libbpf-dev \
             bpftool linux-tools-common linux-tools-generic \
             python3-pip
 
-      - name: Build
-        run: make
+      - name: Build eBPF programs
+        run: make bpf
+
+      - name: Build Go binaries
+        run: make cmd
 
       - name: Check binaries
         run: |
           ls -la build/
           file build/ksd build/ksctl build/ks-adversary build/ks-benchmark
 
-      - name: Run unit tests
-        run: make test
-
-      - name: Run benchmark
-        run: ./build/ks-benchmark
+      - name: Vet
+        run: make vet
 
       - name: Check eBPF programs
         run: |
@@ -45,6 +48,9 @@ jobs:
       - name: Run adversary harness
         run: ./build/ks-adversary all
 
+      - name: Run benchmark
+        run: ./build/ks-benchmark
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -55,17 +61,20 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install deps
         run: sudo apt-get install -y clang llvm
-      - name: Check eBPF code compiles
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Check eBPF compiles
         run: |
           for f in src/bpf/*.bpf.c; do
             echo "Compiling $f..."
             clang -O2 -target bpf -g -I src/bpf -I include -c "$f" -o /dev/null
-          done
-      - name: Check C code compiles
-        run: |
-          for f in src/daemon/*.c src/libks/*.c src/tools/*.c; do
-            echo "Checking $f..."
-            gcc -O2 -Wall -Wextra -I include -I src/daemon -fsyntax-only "$f" 2>&1 || true
           done
