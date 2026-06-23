@@ -1,0 +1,15 @@
+process: nginx
+
+allowed:
+
+  - read:/etc/nginx/*
+
+  - connect:10.0.0.0/8
+
+deny:
+
+  - exec:/bin/sh
+
+  - exec:/usr/bin/bash
+
+  - ptrace:*
