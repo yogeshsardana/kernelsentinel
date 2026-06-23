@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang llvm libbpf-dev \
+            bpftool linux-tools-common linux-tools-generic \
+            python3-pip
+
+      - name: Build eBPF programs
+        run: make bpf
+
+      - name: Build Go binaries
+        run: make cmd
+
+      - name: Check binaries
+        run: |
+          ls -la build/
+          file build/ksd build/ksctl build/ks-adversary build/ks-benchmark
+
+      - name: Vet
+        run: make vet
+
+      - name: Check eBPF programs
+        run: |
+          for f in build/*.bpf.o; do
+            echo "Checking $f..."
+            bpftool prog dump xlated "$f" > /dev/null 2>&1 || true
+          done
+
+      - name: Run adversary harness
+        run: ./build/ks-adversary all
+
+      - name: Run benchmark
+        run: ./build/ks-benchmark
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernelsentinel-build
+          path: build/
+
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install deps
+        run: sudo apt-get install -y clang llvm
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Check eBPF compiles
+        run: |
+          for f in src/bpf/*.bpf.c; do
+            echo "Compiling $f..."
+            clang -O2 -target bpf -g -I src/bpf -I include -c "$f" -o /dev/null
+          done
