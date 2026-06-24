@@ -2,7 +2,7 @@
 /* Copyright (C) 2026 Yogesh Sardana <yogesh.sardana1@gmail.com>  */
 /* Author: Yogesh Sardana                                         */
 
-#include <linux/bpf.h>
+#include "vmlinux.h"
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 #include <bpf/bpf_core_read.h>

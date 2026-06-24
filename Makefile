@@ -3,13 +3,14 @@ CLANG := clang
 BPF_CFLAGS := -O2 -target bpf -g -I include -I src/bpf -idirafter /usr/include/$(shell uname -m)-linux-gnu
 
 BUILD_DIR := build
+VMLINUX_H := include/vmlinux.h
 BPF_OBJS := $(patsubst src/bpf/%.bpf.c,$(BUILD_DIR)/%.bpf.o,$(wildcard src/bpf/*.bpf.c))
 
 .PHONY: all clean load unload test fmt vet
 
 all: bpf cmd
 
-bpf: $(BPF_OBJS)
+bpf: $(VMLINUX_H) $(BPF_OBJS)
 
 cmd: $(BUILD_DIR)
 	$(GO) build -o $(BUILD_DIR)/ksd ./cmd/ksd
@@ -20,7 +21,10 @@ cmd: $(BUILD_DIR)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-$(BUILD_DIR)/%.bpf.o: src/bpf/%.bpf.c include/kernelsentinel.h src/bpf/ks_bpf_common.h | $(BUILD_DIR)
+$(VMLINUX_H):
+	bpftool btf dump file /sys/kernel/btf/vmlinux format c > $@
+
+$(BUILD_DIR)/%.bpf.o: src/bpf/%.bpf.c include/kernelsentinel.h src/bpf/ks_bpf_common.h $(VMLINUX_H) | $(BUILD_DIR)
 	$(CLANG) $(BPF_CFLAGS) -c $< -o $@
 
 load: $(BPF_OBJS)
@@ -46,7 +50,7 @@ tidy:
 	$(GO) mod tidy
 
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR) $(VMLINUX_H)
 
 install: all
 	install -d $(DESTDIR)/usr/local/bin
