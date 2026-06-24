@@ -52,24 +52,24 @@ int BPF_PROG(ks_monitor_task_alloc, struct task_struct *task, unsigned long clon
 
     bpf_probe_read_kernel(&child_pid, sizeof(child_pid), &task->pid);
 
-    struct process_exec_context ctx = {
+    struct process_exec_context exec_ctx = {
         .pid = child_pid,
         .ppid = pid,
         .exec_start_ns = bpf_ktime_get_ns(),
         .integrity_score = 100,
     };
 
-    bpf_get_current_comm(ctx.comm, sizeof(ctx.comm));
+    bpf_get_current_comm(exec_ctx.comm, sizeof(exec_ctx.comm));
 
     struct process_exec_context *parent = bpf_map_lookup_elem(&ks_process_tree, &pid);
     if (parent) {
-        ctx.ppid = parent->pid;
+        exec_ctx.ppid = parent->pid;
     }
 
     int stack_id = bpf_get_stackid(&ks_perf_events, task, 0);
-    ctx.stack_id = stack_id < 0 ? 0 : (__u32)stack_id;
+    exec_ctx.stack_id = stack_id < 0 ? 0 : (__u32)stack_id;
 
-    bpf_map_update_elem(&ks_process_tree, &child_pid, &ctx, BPF_ANY);
+    bpf_map_update_elem(&ks_process_tree, &child_pid, &exec_ctx, BPF_ANY);
 
     __u64 inode = BPF_CORE_READ(task, mm, exe_file, f_inode, i_ino);
 
@@ -79,7 +79,7 @@ int BPF_PROG(ks_monitor_task_alloc, struct task_struct *task, unsigned long clon
         e->task_alloc.parent_pid = pid;
         e->task_alloc.child_pid = child_pid;
         e->pid = child_pid;
-        e->timestamp_ns = ctx.exec_start_ns;
+        e->timestamp_ns = exec_ctx.exec_start_ns;
         bpf_ringbuf_submit(e, 0);
     }
 
@@ -101,10 +101,10 @@ int BPF_PROG(ks_monitor_exec, struct linux_binprm *bprm)
 {
     __u32 pid = bpf_get_current_pid_tgid() >> 32;
 
-    struct process_exec_context *ctx = bpf_map_lookup_elem(&ks_process_tree, &pid);
-    if (ctx) {
-        ctx->exec_start_ns = bpf_ktime_get_ns();
-        bpf_get_current_comm(ctx->comm, sizeof(ctx->comm));
+    struct process_exec_context *exec_ctx = bpf_map_lookup_elem(&ks_process_tree, &pid);
+    if (exec_ctx) {
+        exec_ctx->exec_start_ns = bpf_ktime_get_ns();
+        bpf_get_current_comm(exec_ctx->comm, sizeof(exec_ctx->comm));
     }
 
     __u64 inode = 0;
