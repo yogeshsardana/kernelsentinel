@@ -1,6 +1,6 @@
 GO := go
 CLANG := clang
-BPF_CFLAGS := -O2 -target bpf -g -I include -I src/bpf
+BPF_CFLAGS := -O2 -target bpf -g -I include -I src/bpf -idirafter /usr/include/$(shell uname -m)-linux-gnu
 
 BUILD_DIR := build
 BPF_OBJS := $(patsubst src/bpf/%.bpf.c,$(BUILD_DIR)/%.bpf.o,$(wildcard src/bpf/*.bpf.c))
