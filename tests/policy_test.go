@@ -39,28 +39,28 @@ func TestNewKernelSentinel(t *testing.T) {
 }
 
 func TestEvaluateEvent(t *testing.T) {
-	ks, _ := ks.New(nil)
-	defer ks.Close()
+	app, _ := ks.New(nil)
+	defer app.Close()
 
 	ev := &ks.Event{
 		EventType: ks.EventFileOpen,
 		PID:       100,
 	}
-	action := ks.EvaluateEvent(ev)
+	action := app.EvaluateEvent(ev)
 	if action != ks.ActionAllow {
 		t.Fatalf("expected allow, got %d", action)
 	}
 }
 
 func TestStats(t *testing.T) {
-	ks, _ := ks.New(nil)
-	defer ks.Close()
+	app, _ := ks.New(nil)
+	defer app.Close()
 
 	ev := &ks.Event{EventType: ks.EventSocketConnect}
-	ks.EvaluateEvent(ev)
-	ks.EvaluateEvent(ev)
+	app.EvaluateEvent(ev)
+	app.EvaluateEvent(ev)
 
-	stats := ks.Stats()
+	stats := app.Stats()
 	if stats.EventsProcessed != 2 {
 		t.Fatalf("expected 2 events, got %d", stats.EventsProcessed)
 	}

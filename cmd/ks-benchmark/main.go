@@ -45,9 +45,9 @@ func runBenchmark(b Benchmark) time.Duration {
 
 func main() {
 	fmt.Println("KernelSentinel Benchmark Suite")
-	fmt.Println("===============================\n")
+	fmt.Println("===============================")
 	fmt.Println("Platform: x86_64 / arm64")
-	fmt.Println("Kernel: Linux 6.8+ (eBPF LSM)\n")
+	fmt.Println("Kernel: Linux 6.8+ (eBPF LSM)")
 
 	total := time.Duration(0)
 	for _, b := range benchmarks {
