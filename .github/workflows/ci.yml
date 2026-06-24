@@ -21,8 +21,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             clang llvm libbpf-dev \
-            bpftool linux-tools-common linux-tools-generic \
+            linux-tools-common linux-tools-generic \
             python3-pip
+          sudo apt-get install -y linux-tools-$(uname -r) || true
+          sudo ln -sf /usr/lib/linux-tools/*/bpftool /usr/local/bin/bpftool
 
       - name: Build eBPF programs
         run: make bpf
