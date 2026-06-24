@@ -10,20 +10,20 @@ KernelSentinel is a first-of-its-kind framework combining eBPF LSM hooks with ha
 
 ## Overview
 
-Modern Linux systems rely on IMA/EVM for file integrity measurement, but these mechanisms lack runtime behavioral context — an attacker who executes a trusted binary maliciously bypasses all static integrity checks. KernelSentinel closes this gap by bridging the TPM2 attestation trust chain directly into eBPF LSM enforcement decisions, creating a cryptographically verifiable behavioral policy layer.
+Modern Linux systems rely on IMA/EVM for file integrity measurement, but these mechanisms lack runtime behavioral context - an attacker who executes a trusted binary maliciously bypasses all static integrity checks. KernelSentinel closes this gap by bridging the TPM2 attestation trust chain directly into eBPF LSM enforcement decisions, creating a cryptographically verifiable behavioral policy layer.
 
 ## Key Features
 
-- **eBPF LSM Behavioral Measurement** — Continuously measures the execution graph of critical processes using eBPF ring-buffers
-- **TPM2 PCR Chaining** — Signs measurements against a TPM2-bound policy chain and rejects deviations in real time
-- **N-of-M HSM Quorum Governance** — Policy updates require a quorum signature from N-of-M hardware security tokens, preventing single-point policy injection attacks
-- **No Kernel Patching Required** — Deployable on unmodified RHEL, Debian, Ubuntu LTS, or SUSE kernels >= 6.8
-- **Container-Native** — Per-workload TPM2 virtual PCR segments for Kubernetes environments
-- **Adversarial Test Harness** — Ships with 23 documented kernel exploitation patterns for reproducible benchmarking
+- **eBPF LSM Behavioral Measurement** - Continuously measures the execution graph of critical processes using eBPF ring-buffers
+- **TPM2 PCR Chaining** - Signs measurements against a TPM2-bound policy chain and rejects deviations in real time
+- **N-of-M HSM Quorum Governance** - Policy updates require a quorum signature from N-of-M hardware security tokens, preventing single-point policy injection attacks
+- **No Kernel Patching Required** - Deployable on unmodified RHEL, Debian, Ubuntu LTS, or SUSE kernels >= 6.8
+- **Container-Native** - Per-workload TPM2 virtual PCR segments for Kubernetes environments
+- **Adversarial Test Harness** - Ships with 23 documented kernel exploitation patterns for reproducible benchmarking
 
 ## Author & Maintainer
 
-**Yogesh Sardana** — Author, maintainer, and primary developer
+**Yogesh Sardana** - Author, maintainer, and primary developer
 - Email: [yogesh.sardana1@gmail.com](mailto:yogesh.sardana1@gmail.com)
 - GitHub: [@yogesh-sardana](https://github.com/yogesh-sardana)
 
@@ -134,9 +134,9 @@ docker run --rm -it --privileged \
 
 Three upstream-targetable patches for the Linux kernel:
 
-1. `bpf_ima_policy_eval()` — New eBPF helper to query and update IMA appraisal state
-2. `lsm_bpf_behavioral_commit()` — New LSM hook for atomic policy evaluation with rollback semantics
-3. `PKCS#11 keyring bridge` — HSM-resident signing key integration into the IMA keyring
+1. `bpf_ima_policy_eval()` - New eBPF helper to query and update IMA appraisal state
+2. `lsm_bpf_behavioral_commit()` - New LSM hook for atomic policy evaluation with rollback semantics
+3. `PKCS#11 keyring bridge` - HSM-resident signing key integration into the IMA keyring
 
 ## License
 
