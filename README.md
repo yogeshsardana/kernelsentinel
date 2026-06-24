@@ -2,6 +2,8 @@
 
 **eBPF-Driven Runtime Integrity Enforcement with Cryptographic Policy Anchoring**
 
+[![CI](https://github.com/kernelsentinel/kernelsentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/kernelsentinel/kernelsentinel/actions/workflows/ci.yml)
+
 Copyright (C) 2026 **Yogesh Sardana** <yogesh.sardana1@gmail.com>
 
 KernelSentinel is a first-of-its-kind framework combining eBPF LSM hooks with hardware-backed cryptographic policy anchors (TPM2 PCR attestation + DICE chaining) to enforce behavioral integrity at runtime on Linux 6.8+ kernels.
@@ -52,6 +54,14 @@ For questions, contributions, or security disclosures, please reach out via emai
 └────────────────────────────────────────────────────────────────┘
 ```
 
+## Prerequisites
+
+- **Linux kernel >= 6.8** with `CONFIG_BPF_LSM=y` and `CONFIG_DEBUG_INFO_BTF=y`
+- clang >= 14, LLVM >= 14, bpftool, libbpf-dev
+- Go >= 1.22
+- Root access (for eBPF loading and LSM hooks)
+- TPM2 device (`/dev/tpmrm0`) for attestation features
+
 ## Quick Start
 
 ```bash
@@ -61,26 +71,63 @@ make
 # Load eBPF programs
 sudo make load
 
+# Attach LSM programs
+sudo bpftool prog attach /sys/fs/bpf/ks_behavior_tracker lsm
+sudo bpftool prog attach /sys/fs/bpf/ks_integrity_enforcer lsm
+
 # Start the daemon
-sudo ./build/ksd -c /etc/kernelsentinel/config.yaml
+sudo ./build/ksd /etc/kernelsentinel/config.yaml
 
 # Check status
 ./build/ksctl status
 ```
 
+## Test (no root / no eBPF required)
+
+```bash
+# Unit tests
+make test
+
+# Run benchmark (userspace only)
+./build/ks-benchmark
+
+# Run adversary scenarios
+./build/ks-adversary list
+./build/ks-adversary all
+```
+
 ## Project Structure
 
 ```
-├── src/bpf/            # eBPF programs (C, compiled to .o)
-├── src/daemon/         # Userspace daemon (C)
-├── src/libks/          # Shared library
-├── src/tools/          # CLI utilities (ksctl, ks-adversary, ks-benchmark)
-├── include/            # Public headers
+├── src/bpf/            # eBPF programs (C, compiled to .bpf.o)
+├── cmd/                # Go entrypoints (ksd, ksctl, ks-adversary, ks-benchmark)
+├── internal/           # Go internal packages (daemon, policy, tpm2, ringbuf)
+├── pkg/                # Go public packages
+├── include/            # Shared C headers + generated vmlinux.h
 ├── policies/           # Policy definitions (YAML)
-├── tests/              # Unit, integration, adversary scenario tests
+├── tests/              # Unit and integration tests
 ├── patches/            # Upstream kernel patches
-├── contrib/            # Deployment artifacts
+├── contrib/            # Docker, systemd, Kubernetes deployment artifacts
 └── docs/               # Documentation
+```
+
+## Docker
+
+```bash
+# Build
+docker build -t kernelsentinel -f contrib/docker/Dockerfile .
+
+# Run benchmark (userspace, no special perms)
+docker run --rm kernelsentinel /usr/bin/ks-benchmark
+
+# Run adversary scenarios
+docker run --rm kernelsentinel /usr/bin/ks-adversary all
+
+# Run with eBPF (requires --privileged on a Linux host)
+docker run --rm -it --privileged \
+  -v /sys/kernel/btf:/sys/kernel/btf:ro \
+  -v /sys/fs/bpf:/sys/fs/bpf \
+  kernelsentinel /usr/bin/ksctl status
 ```
 
 ## Upstream Contributions
