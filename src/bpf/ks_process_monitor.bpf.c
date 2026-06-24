@@ -11,6 +11,11 @@
 char LICENSE[] SEC("license") = "GPL";
 
 struct {
+    __uint(type, BPF_MAP_TYPE_RINGBUF);
+    __uint(max_entries, KS_RING_BUF_SIZE);
+} ks_events SEC(".maps");
+
+struct {
     __uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
     __uint(key_size, sizeof(__u32));
     __uint(value_size, sizeof(__u32));

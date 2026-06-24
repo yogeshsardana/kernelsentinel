@@ -8,9 +8,20 @@
 #include <bpf/bpf_core_read.h>
 #include "ks_bpf_common.h"
 
+#ifndef EPERM
+#define EPERM 1
+#endif
+
 char LICENSE[] SEC("license") = "GPL";
 
 extern struct ks_integrity_state ks_state __attribute__((visibility("hidden")));
+
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __uint(max_entries, 1);
+    __type(key, __u32);
+    __type(value, struct ks_integrity_state);
+} ks_integrity_map SEC(".maps");
 
 struct {
     __uint(type, BPF_MAP_TYPE_HASH);
