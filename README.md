@@ -2,7 +2,7 @@
 
 **eBPF-Driven Runtime Integrity Enforcement with Cryptographic Policy Anchoring**
 
-[![CI](https://github.com/kernelsentinel/kernelsentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/kernelsentinel/kernelsentinel/actions/workflows/ci.yml)
+[![CI](https://github.com/yogeshsardana/kernelsentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/yogeshsardana/kernelsentinel/actions/workflows/ci.yml)
 
 Copyright (C) 2026 **Yogesh Sardana** <yogesh.sardana1@gmail.com>
 
