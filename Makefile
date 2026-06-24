@@ -1,6 +1,6 @@
 GO := go
 CLANG := clang
-BPF_CFLAGS := -O2 -target bpf -g -I include -I src/bpf -idirafter /usr/include/$(shell uname -m)-linux-gnu
+BPF_CFLAGS := -O2 -target bpf -g -I include -I src/bpf
 
 BUILD_DIR := build
 VMLINUX_H := include/vmlinux.h
