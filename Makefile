@@ -6,7 +6,7 @@ BUILD_DIR := build
 VMLINUX_H := include/vmlinux.h
 BPF_OBJS := $(patsubst src/bpf/%.bpf.c,$(BUILD_DIR)/%.bpf.o,$(wildcard src/bpf/*.bpf.c))
 
-.PHONY: all clean load unload test fmt vet
+.PHONY: all clean load unload test fmt vet FORCE
 
 all: bpf cmd
 
@@ -21,8 +21,11 @@ cmd: $(BUILD_DIR)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-$(VMLINUX_H):
+FORCE:
+
+$(VMLINUX_H): FORCE
 	bpftool btf dump file /sys/kernel/btf/vmlinux format c > $@
+	test -s $@ || (echo "ERROR: vmlinux.h is empty — BTF not available" && rm -f $@ && exit 1)
 
 $(BUILD_DIR)/%.bpf.o: src/bpf/%.bpf.c include/kernelsentinel.h src/bpf/ks_bpf_common.h $(VMLINUX_H) | $(BUILD_DIR)
 	$(CLANG) $(BPF_CFLAGS) -c $< -o $@

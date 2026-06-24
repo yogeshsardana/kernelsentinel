@@ -17,3 +17,4 @@ cscope.*
 *.deb
 *.rpm
 *.log
+include/vmlinux.h
