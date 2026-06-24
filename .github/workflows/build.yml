@@ -1,0 +1,51 @@
+name: Release Build
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Build for ${{ matrix.arch }}
+        env:
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          make bpf
+          GOARCH=${{ matrix.arch }} go build -o build/ksd ./cmd/ksd
+          GOARCH=${{ matrix.arch }} go build -o build/ksctl ./cmd/ksctl
+          GOARCH=${{ matrix.arch }} go build -o build/ks-adversary ./cmd/ks-adversary
+          GOARCH=${{ matrix.arch }} go build -o build/ks-benchmark ./cmd/ks-benchmark
+
+      - name: Package
+        run: |
+          mkdir -p dist/kernelsentinel-${{ matrix.arch }}
+          cp build/ksd build/ksctl build/ks-adversary build/ks-benchmark \
+             dist/kernelsentinel-${{ matrix.arch }}/
+          cp build/*.bpf.o dist/kernelsentinel-${{ matrix.arch }}/
+          cp policies/default_policy.yaml dist/kernelsentinel-${{ matrix.arch }}/
+          cp -r contrib dist/kernelsentinel-${{ matrix.arch }}/
+          cp README.md LICENSE dist/kernelsentinel-${{ matrix.arch }}/
+          cd dist
+          tar czf kernelsentinel-${{ matrix.arch }}.tar.gz kernelsentinel-${{ matrix.arch }}/
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: dist/kernelsentinel-${{ matrix.arch }}.tar.gz
+          asset_name: kernelsentinel-${{ matrix.arch }}.tar.gz
+          asset_content_type: application/gzip

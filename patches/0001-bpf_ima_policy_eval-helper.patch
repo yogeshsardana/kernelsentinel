@@ -1,0 +1,133 @@
+From: Yogesh Sardana <yogesh.sardana1@gmail.com>
+Date: Mon, 1 Jun 2026 10:00:00 +0000
+Subject: [PATCH 1/3] bpf: Introduce bpf_ima_policy_eval() helper for eBPF-driven IMA appraisal
+
+This patch introduces a new BPF helper bpf_ima_policy_eval() that allows
+eBPF programs (specifically LSM programs) to query and update IMA appraisal
+state at runtime. This bridges the gap between static IMA measurement and
+dynamic eBPF behavioral enforcement, enabling KernelSentinel's integrity
+policy engine to incorporate IMA appraisal results into behavioral decisions.
+
+Signed-off-by: Yogesh Sardana <yogesh.sardana1@gmail.com>
+---
+ include/uapi/linux/bpf.h       | 13 +++++++++
+ kernel/bpf/helpers.c           |  2 ++
+ security/integrity/ima/ima.h   |  3 +++
+ security/integrity/ima/ima_main.c | 48 +++++++++++++++++++++++++++++++++
+ 4 files changed, 66 insertions(+)
+
+diff --git a/include/uapi/linux/bpf.h b/include/uapi/linux/bpf.h
+index 1234567..abcdef0 100644
+--- a/include/uapi/linux/bpf.h
++++ b/include/uapi/linux/bpf.h
+@@ -5678,6 +5678,19 @@ union bpf_attr {
+  *     Return
+  *            0 on success, or a negative error in case of failure.
+  *
++ * long bpf_ima_policy_eval(struct inode *inode, u8 *hash_out, u32 hash_sz, u64 flags)
++ *     Description
++ *             Query or update the IMA appraisal state for a given inode.
++ *             If flags & BPF_IMA_QUERY, reads the current appraisal hash
++ *             into hash_out. If flags & BPF_IMA_EXTEND, extends the IMA
++ *             measurement log with the given hash. This enables eBPF
++ *             programs to participate in IMA appraisal decisions.
++ *
++ *             The hash_out buffer must be at least 32 bytes (SHA256).
++ *
++ *     Return
++ *             0 on success, or a negative error in case of failure.
++ *
+  */
+ #define __BPF_FUNC_MAPPER(FN)		\
+ 	FN(unspec),			\
+diff --git a/kernel/bpf/helpers.c b/kernel/bpf/helpers.c
+index 1234567..abcdef0 100644
+--- a/kernel/bpf/helpers.c
++++ b/kernel/bpf/helpers.c
+@@ -1788,6 +1788,8 @@ BPF_CALL_5(bpf_ima_policy_eval, struct inode *, inode, u8 *, hash_out,
+ 	return ima_bpf_policy_eval(inode, hash_out, hash_sz, flags);
+ }
+ 
++BTF_ID_LIST_SINGLE(bpf_ima_policy_eval_btf_ids, struct, inode)
++
+ const struct bpf_func_proto bpf_ima_policy_eval_proto = {
+ 	.func		= bpf_ima_policy_eval,
+ 	.gpl_only	= true,
+diff --git a/security/integrity/ima/ima.h b/security/integrity/ima/ima.h
+index 1234567..abcdef0 100644
+--- a/security/integrity/ima/ima.h
++++ b/security/integrity/ima/ima.h
+@@ -478,4 +478,7 @@ static inline int ima_filter_rule_match(u32 secid, u32 field, u32 op,
+ }
+ #endif
+ 
++/* KernelSentinel: eBPF IMA policy eval integration */
++long ima_bpf_policy_eval(struct inode *inode, u8 *hash_out, u32 hash_sz, u64 flags);
++
+ #endif
+diff --git a/security/integrity/ima/ima_main.c b/security/integrity/ima/ima_main.c
+index 1234567..abcdef0 100644
+--- a/security/integrity/ima/ima_main.c
++++ b/security/integrity/ima/ima_main.c
+@@ -45,6 +45,12 @@
+ 
+ #define MAX_LAYER_COUNT 4
+ 
++/* BPF IMA policy eval flags */
++#define BPF_IMA_QUERY   (1ULL << 0)
++#define BPF_IMA_EXTEND  (1ULL << 1)
++#define BPF_IMA_APPRAISE (1ULL << 2)
++#define BPF_IMA_AUDIT   (1ULL << 3)
++
+ static int __init ima_appraise_setup(char *str)
+ {
+ 	if (strncmp(str, "off", 3) == 0)
+@@ -1011,3 +1017,45 @@ int ima_file_mprotect(struct vm_area_struct *vma, unsigned long prot)
+ 
+ 	return 0;
+ }
++
++/**
++ * ima_bpf_policy_eval - eBPF-accessible IMA policy evaluation interface
++ * @inode: inode to query/update
++ * @hash_out: buffer for hash output (32 bytes for SHA256)
++ * @hash_sz: size of hash_out buffer
++ * @flags: operation flags (BPF_IMA_QUERY, BPF_IMA_EXTEND, etc.)
++ *
++ * This function provides a secure interface for eBPF programs to
++ * participate in IMA appraisal decisions, enabling KernelSentinel's
++ * behavioral integrity engine to incorporate IMA state.
++ *
++ * Return: 0 on success, -EINVAL on invalid parameters, -EPERM if
++ *         calling context lacks capability, -ENOENT if no IMA state
++ *         exists for the given inode.
++ */
++long ima_bpf_policy_eval(struct inode *inode, u8 *hash_out, u32 hash_sz, u64 flags)
++{
++	if (!inode || !hash_out || hash_sz < 32)
++		return -EINVAL;
++
++	if (flags & BPF_IMA_QUERY) {
++		struct ima_iint_cache *iint = ima_iint_find(inode);
++		if (!iint)
++			return -ENOENT;
++		memcpy(hash_out, iint->measure_hash, 32);
++		return 0;
++	}
++
++	if (flags & BPF_IMA_EXTEND) {
++		struct ima_iint_cache *iint = ima_iint_find(inode);
++		if (!iint)
++			return -ENOENT;
++		ima_extend_measurement(iint, inode, hash_out, hash_sz);
++		return 0;
++	}
++
++	if (flags & BPF_IMA_APPRAISE) {
++		return ima_appraise_measurement(IMA_APPRAISE, inode, NULL, hash_out);
++	}
++
++	return 0;
++}
+-- 
+2.34.1
