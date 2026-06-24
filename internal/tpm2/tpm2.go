@@ -10,18 +10,17 @@ import (
 
 	"github.com/google/go-tpm/tpm2"
 	"github.com/google/go-tpm/tpm2/transport"
-	"github.com/google/go-tpm/tpmutil"
 	ks "github.com/kernelsentinel/kernelsentinel/pkg/ks"
 )
 
 type Attestation struct {
-	device  string
-	rwc     transport.TPM
-	closed  bool
+	device string
+	rwc    transport.TPMCloser
+	closed bool
 }
 
 func Open(device string) (*Attestation, error) {
-	rwc, err := tpmutil.OpenTPM(device)
+	rwc, err := transport.OpenTPM()
 	if err != nil {
 		return nil, fmt.Errorf("%w: open %s: %w", ks.ErrTPM2Init, device, err)
 	}
@@ -37,12 +36,11 @@ func (a *Attestation) Close() error {
 }
 
 func (a *Attestation) PCRRead(pcrIndex uint32) ([]byte, error) {
-	// Read specified PCR banks - use SHA256
 	pcrSel := tpm2.TPMLPCRSelection{
 		PCRSelections: []tpm2.TPMSPCRSelection{
 			{
-				Hash: tpm2.TPMAlgSHA256,
-				PCRs: tpm2.PCROption((uint(pcrIndex))),
+				Hash:      tpm2.TPMAlgSHA256,
+				PCRSelect: tpm2.PCClientCompatible.PCRs(uint(pcrIndex)),
 			},
 		},
 	}
@@ -69,8 +67,8 @@ func (a *Attestation) PCRExtend(pcrIndex uint32, hash []byte) error {
 		Digests: tpm2.TPMLDigestValues{
 			Digests: []tpm2.TPMTHA{
 				{
-					HashAlgo: tpm2.TPMAlgSHA256,
-					Digest:   hash,
+					HashAlg: tpm2.TPMAlgSHA256,
+					Digest:  hash,
 				},
 			},
 		},
